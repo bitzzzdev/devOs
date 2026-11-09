@@ -4,7 +4,7 @@ DEVos is an early native Linux pocket-server project for the Realme C11 2021 (RM
 
 ## Current state
 
-The device-specific Realme Linux 4.14.193 kernel source is available as a pinned Git submodule. The A.119 stock package was downloaded from Realme's firmware host, passed ZIP CRC validation, and its PAC and boot components were inspected. A small ARM64 BusyBox initramfs has been built, but it has not been packed into a boot image or tested on the phone. The source package remains in temporary storage because it exceeds available workspace space. No phone partitions have been changed.
+The device-specific Realme Linux 4.14.193 kernel source is available as a pinned Git submodule. The user's A.119 stock package was downloaded from a Realme firmware host, passed ZIP CRC validation, and its PAC and boot components were inspected. A small ARM64 BusyBox initramfs has been assembled with the stock kernel and base DTB into a 64 MiB unsigned Android boot-image candidate. It has not been booted on the phone. The source package remains in temporary storage because it exceeds available workspace space. No phone partitions have been changed.
 
 There is no verified, device-tested native Linux image for RMX3231 in the sources reviewed so far. The available LineageOS material is an Android device tree and a GSI guide whose end-to-end test was performed on RMX3235. See [ROM research](docs/rom-research.md) and [hardware compatibility](docs/hardware-compatibility.md).
 
@@ -22,11 +22,18 @@ There is no verified, device-tested native Linux image for RMX3231 in the source
 
 ## Usage
 
-This repository currently contains research and source material, not a bootable DEVos image. Clone the kernel source with `git submodule update --init --recursive`, then read [the firmware inventory](firmware/inventory/stage-1-2.md), [ROM research](docs/rom-research.md), and [hardware compatibility](docs/hardware-compatibility.md) before making device changes. Local firmware downloads and extracted images are excluded from Git.
+This repository contains source and an untested boot-image candidate, not a verified bootable DEVos release. To reproduce the local candidate, first extract the exact RMX3231 A.119 `BOOT` partition image to `firmware/extracted/boot/boot.img`, then run:
+
+```sh
+python3 scripts/build_initramfs.py
+python3 scripts/build_boot_image.py
+```
+
+The generated image is unsigned because the changed ramdisk cannot use Realme's stock AVB metadata. Its bootloader acceptance and recovery route are unknown. Do not flash it yet. Clone the kernel source with `git submodule update --init --recursive`, then read [the firmware inventory](firmware/inventory/stage-1-2.md), [ROM research](docs/rom-research.md), [hardware compatibility](docs/hardware-compatibility.md), and [boot strategy](docs/boot-strategy.md) before making device changes. Local firmware downloads and extracted images are excluded from Git.
 
 ## Development status
 
-The current inventory identifies the boot image, kernel, ramdisk, DTBO, AVB metadata, modem payload entries, and a 5 GiB dynamic-partition super image. DTBO entry 0 matches the RMX3231 vendor overlay and its `androidboot.dtbo_idx=0` selection. Nothing in this repository is an installation guide.
+The current inventory identifies the boot image, kernel, ramdisk, DTBO, AVB metadata, modem payload entries, and a 5 GiB dynamic-partition super image. DTBO entry 0 matches the RMX3231 vendor overlay and its `androidboot.dtbo_idx=0` selection. The local candidate retains the stock kernel and DTB wrapper, replaces the ramdisk, removes the stale AVB footer and vbmeta, and zero-pads to the A.119 package's 64 MiB BOOT entry size. That package size does not confirm the phone's current live partition size. Nothing in this repository is an installation guide.
 
 GitHub Actions builds and inspects the minimal initramfs on pushes and pull requests. Local build instructions are in [rootfs/README.md](rootfs/README.md), and the current boot constraints are in [the boot strategy](docs/boot-strategy.md).
 

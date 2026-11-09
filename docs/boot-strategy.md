@@ -1,6 +1,6 @@
 # RMX3231 boot strategy
 
-Status: an ARM64 initramfs has been built as a local artifact. No modified Android boot image has been assembled, booted, or flashed.
+Status: an ARM64 initramfs has been assembled into a local, unsigned Android boot-image candidate. It has not been booted or flashed. The device is already boot-looping from an earlier attempt, and its current bootloader state and recovery route are unknown.
 
 ## Stock A.119 boot components
 
@@ -10,9 +10,11 @@ The boot image's embedded kernel config enables initramfs, gzip ramdisk decompre
 
 ## Candidate strategy
 
-For a future boot candidate, retain the A.119 kernel, base DTB wrapper, and exact RMX3231 DTBO. Replace only the Android ramdisk with the DEVos initramfs. This preserves the known device-specific kernel and board description while limiting the first userspace to an interactive console.
+`python3 scripts/build_boot_image.py` retains the A.119 kernel, complete base DTB wrapper, boot header parameters, and the separate DTBO partition unchanged. It replaces the Android ramdisk with the DEVos initramfs and recalculates the Android v2 legacy ID using the format in AOSP `mkbootimg.py` ([source](https://android.googlesource.com/platform/system/tools/mkbootimg/+/refs/heads/main/mkbootimg.py)). The result is padded with zeroes to the 64 MiB BOOT entry size in the A.119 PAC. This preserves the known device-specific kernel and board description while limiting the first userspace to an interactive console.
 
-Changing the ramdisk changes the boot image covered by the stock AVB metadata. The bootloader lock and AVB enforcement state are unknown. A modified image may be rejected or cause another boot failure. The image will not be assembled into a flashable artifact until the original bootloader state and a usable recovery route are known.
+The output is an unsigned candidate, not a verified flashable release. The stock boot image has an AVB footer pointing to signed vbmeta at the end of the 64 MiB image. Changing the ramdisk invalidates that signature, so the builder removes both the old AVB footer and its vbmeta block and zeroes the remaining partition area. It cannot create a replacement signature trusted by Realme's boot chain. The bootloader lock and AVB enforcement state are unknown; a modified image may be rejected or cause another boot failure. The package's partition size also does not confirm the phone's current live partition size. Do not flash this candidate until the device state and a complete recovery route are established.
+
+The local build produced `builds/devos-rmx3231-a119-boot-unsigned.img` with SHA-256 `b76171d797d43ff6d849536408536c5e01baa8fc4013d7fa53fd931714309494`. The image was parsed again with `scripts/inspect_android_boot.py`; its header reports v2, 2,048-byte pages, and the expected kernel, initramfs, and DTB sizes. The extracted kernel and DTB wrapper hashes match the source components. No AVB footer or vbmeta remains. Hardware boot and bootloader acceptance are not verified.
 
 ## Recovery evidence
 
@@ -22,4 +24,4 @@ The workspace has no `adb`, `fastboot`, or `lsusb` tools, so no device connectio
 
 ## Local build artifact
 
-Run `python3 scripts/build_initramfs.py` to create `builds/devos-rmx3231-initramfs.cpio.gz`. The binary uses Debian's statically linked ARM64 BusyBox package pinned by version and SHA-256 in the script. The CPIO and gzip structure were inspected after building. Hardware boot remains unverified.
+Run `python3 scripts/build_initramfs.py` and then `python3 scripts/build_boot_image.py` to create the initramfs and unsigned boot-image candidate. The second command requires the locally extracted stock A.119 image at `firmware/extracted/boot/boot.img`; source firmware and generated artifacts are excluded from Git. The initramfs uses Debian's statically linked ARM64 BusyBox package pinned by version and SHA-256 in the script. The candidate has not been booted on hardware.
