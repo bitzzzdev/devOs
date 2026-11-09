@@ -13,3 +13,21 @@ git submodule update --init --recursive
 ```
 
 The current checkout pins this source as a submodule. Initialize it with the command above after cloning the DEVos repository.
+
+## Optional upstream tool environment
+
+These variables are used only by optional utilities in the kernel source.
+They are not required by the DEVos initramfs or boot-image build.
+
+| Variable | Upstream use |
+| --- | --- |
+| `LOG_FILE` | Selects output files in the `pm-graph` suspend and boot analysis tools when run by test scripts. |
+| `PERF_EXEC_PATH` | Adds the perf Python helper library to the search path for optional perf scripts. |
+| `READELF` | Overrides the `readelf` executable used by the IA-64 unwind checker. |
+| `SPHINX_CONF` | Loads an additional Sphinx configuration while building kernel documentation. |
+| `SUDO_GID`, `SUDO_UID` | Restore output-file ownership in the optional Intel pstate tracer when invoked through sudo. |
+| `SUDO_USER`, `USER` | Identify the invoking/root user in optional `pm-graph` analysis utilities. |
+
+`AVB_INVOCATION_LOGFILE` is separately recognized by the downloaded AOSP
+`avbtool.py` and appends its command invocations when set. The DEVos builder
+does not set it; see [third-party notices](../THIRD_PARTY_NOTICES.md).

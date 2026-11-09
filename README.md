@@ -37,6 +37,8 @@ The current inventory identifies the boot image, kernel, ramdisk, DTBO, AVB meta
 
 GitHub Actions builds and inspects the minimal initramfs on pushes and pull requests. Local build instructions are in [rootfs/README.md](rootfs/README.md), and the current boot constraints are in [the boot strategy](docs/boot-strategy.md).
 
+The upstream kernel source's optional tools read `LOG_FILE`, `PERF_EXEC_PATH`, `READELF`, `SPHINX_CONF`, `SUDO_GID`, `SUDO_UID`, `SUDO_USER`, and `USER`. The downloaded AOSP AVB tool optionally reads `AVB_INVOCATION_LOGFILE`. These are controls for those upstream utilities, not DEVos configuration; DEVos does not set them. See [kernel tool notes](kernel/README.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
+
 ## License and support
 
 Original DEVos source code by `bitzzdev` is licensed under [PolyForm Noncommercial 1.0.0](LICENSE). Copies and derivatives must retain the license and its required attribution notice, and commercial use of that original code is not permitted by the license. This is source-available software, not OSI-defined open source, because the license restricts commercial use. The [Open Source Initiative's definition](https://opensource.org/osd) requires use for any field of endeavor.
