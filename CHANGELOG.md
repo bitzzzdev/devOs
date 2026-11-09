@@ -5,6 +5,7 @@ All notable changes to DEVos are listed here.
 ## [Unreleased]
 
 ### Added
+- Added a beginner guide to verify the A.119 firmware and build the local boot candidate, with an explicit no-flash status until device recovery is verified.
 - Assembled a local 64 MiB A.119 boot-image candidate with a self-verified custom AVB signature.
 - Initial RMX3231 development workspace and hardware-source research.
 - Pinned Realme kernel source for the RMX3231 and SC9863A platform.

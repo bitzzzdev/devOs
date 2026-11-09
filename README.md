@@ -22,7 +22,9 @@ There is no verified, device-tested native Linux image for RMX3231 in the source
 
 ## Usage
 
-This repository contains source and an untested boot-image candidate, not a verified bootable DEVos release. To reproduce the local candidate, first extract the exact RMX3231 A.119 `BOOT` partition image to `firmware/extracted/boot/boot.img`, then run:
+This repository contains source and an untested boot-image candidate, not a verified bootable DEVos release. Read the [RMX3231 installation guide](docs/install-rmx3231.md) before preparing a local build. It explains the firmware checks, build steps, and why flashing is not currently supported.
+
+To reproduce the local candidate, first extract the exact RMX3231 A.119 `BOOT` partition image to `firmware/extracted/boot/boot.img`, then run:
 
 ```sh
 python3 scripts/build_initramfs.py
