@@ -38,7 +38,7 @@ The complete 49-entry PAC table, including entry IDs, filenames, byte sizes, off
 | Modem and connectivity | `Modem_LTE`, `Modem_WCN`, `DSP_LTE_GGE`, `DSP_LTE_LTE`, `DFS`, `NV_LTE`, `Modem_LTE_DELTANV`, `GPS_BD`, and `GPS_GL` |
 | Device data and security | `Persist`, `ProdNV`, `Odmko`, `Socko`, `Trustos`, `Teecfg`, `SML`, bootloader stages, and signed vbmeta components. These are device-sensitive or boot-chain components and are not DEVos replacement candidates. |
 | Other | `My_preload`, cache/userdata templates, logo images, six OCDT/project configuration blobs, FDL loaders, and PAC operations such as erase/phase-check entries. |
-| Recovery | No standalone `recovery.img`, `vendor_boot.img`, or `init_boot.img` entry appears in the PAC table. Recovery-related init files and fstab variants are present in the boot ramdisk. |
+| Recovery | No standalone `recovery.img`, `vendor_boot.img`, or `init_boot.img` entry appears in the PAC table. Recovery-related init files and fstab variants are present in the boot ramdisk. The ZIP contains a Windows-only `ResearchDownload.exe` tool and FDL/PAC files; this is a possible stock-recovery route, not a verified route for this currently boot-looping phone. |
 | Partition map | The PAC is a flashing package, not a GPT dump. It does not establish physical partition boundaries or sizes. Those still require a read-only device-side partition query or authoritative partition map. |
 
 No PAC entry or image for `vendor.img`, `odm.img`, or `system_ext.img` exists as a standalone file. Those logical partitions were extracted read-only from `super.img`; the 2.88 GiB `system_a` image was not copied because available workspace capacity is limited. The `vendor_a`, `system_ext_a`, and `product_a` files are ext4 images. `vendor_a` contains Android 11 vendor build properties for RMX3231, a 32-bit ARM ABI list with no 64-bit ABI, Unisoc RIL and radio services, Wi-Fi supplicant/hostapd service configs, display composer/allocator, health, USB, sensors, power, and thermal services. These depend on Android init and HIDL/Binder libraries; this is not a standalone Linux modem or Wi-Fi stack. Vendor firmware files include several touchscreen firmware variants and calibration/configuration data, so they cannot safely be treated as generic device files.
@@ -47,17 +47,26 @@ Standalone LTE modem and DSP/co-processor blobs were extracted to the ignored `f
 
 ## Boot image inspection
 
-`boot.img` is an Android boot image with header version 2, 2,048-byte page size, 20,221,968-byte ARM64 kernel, and 8,998,681-byte gzip ramdisk. The image is 64 MiB, with unused padding after its payloads. The boot command line begins `console=ttyS1,115200n8 androidboot.selinux=permissive buildvariant=user`.
+`boot.img` is an Android boot image with header version 2, 2,048-byte page size, 20,221,968-byte ARM64 kernel, 8,998,681-byte gzip ramdisk, and an 86,252-byte DTB field. The DTB field is a one-entry Android DT table wrapper; its inner 86,188-byte FDT is the base tree with model `Spreadtrum SC9863A SoC` and compatible `sprd,sc9863a`. The image is 64 MiB, with unused padding after its payloads. The boot command line begins `console=ttyS1,115200n8 androidboot.selinux=permissive buildvariant=user`.
 
-The embedded kernel identifies itself as Linux `4.14.193+-ab453`, built with Android clang 11 for ARM64 on 2023-10-11. The gzip ramdisk integrity test passed. Its `first_stage_ramdisk/fstab.RMX3231` mounts logical ext4 system, system_ext, vendor, and product partitions read-only with AVB and first-stage mount flags. `file` recognizes the extracted kernel as an ARM64 Linux boot `Image`. The DTBO header uses magic `0xd7b7ab1e`, a 2,048-byte page size, and six entries. The entries include several display/panel/touch configurations, so the correct overlay still needs to be matched against the device panel. All extracted VBMETA files begin with the AVB `AVB0` magic.
+The embedded kernel identifies itself as Linux `4.14.193+-ab453`, built with Android clang 11 for ARM64 on 2023-10-11. The gzip ramdisk integrity test passed. Its `first_stage_ramdisk/fstab.RMX3231` mounts logical ext4 system, system_ext, vendor, and product partitions read-only with AVB and first-stage mount flags. `file` recognizes the extracted kernel as an ARM64 Linux boot `Image`. The separate DTBO header uses magic `0xd7b7ab1e`, a 2,048-byte page size, and six entries. Entry 0 matches the RMX3231 overlay selected by the stock boot arguments; the exact panel revision in this handset remains unknown. All extracted VBMETA files begin with the AVB `AVB0` magic.
+
+The boot image was parsed with `scripts/inspect_android_boot.py`, which extracts the kernel, ramdisk, and nested base DTB and writes a JSON inventory. The gzip ramdisk integrity test passed. The boot image layout follows Android's published v2 header structure.
 
 The `super.img` uses the Android liblp metadata format: version 10.2, 256-byte header, Virtual A/B flag set, 4,096-byte logical block size, three metadata slots, and one 5 GiB `super` block device. The logical group table has `group_unisoc_a` and `group_unisoc_b`, each with a 5,238,685,696-byte maximum. The current image metadata maps only the `_a` partition names to data extents; `_b` sizes are zero. These are stock image metadata facts and do not establish the phone's live slot or physical GPT state.
+
+## DTBO match to the RMX3231 kernel source
+
+The DTBO v0 table has six entries. Entry 0 identifies the board as `sprd,sp9863a-1h10-go` and includes the `oppo, device_info` and Jadard touchscreen properties present in Realme's `RMX3231-overlay.dts`. That DTS sets `androidboot.hardware=RMX3231 androidboot.dtbo_idx=0`. Entry 1 has the same SoC family string but matches the sibling RMX3235 overlay, while entries 2 to 5 describe other SP9863A board variants. This makes entry 0 the exact stock overlay selected for RMX3231 A.119; it does not prove which panel hardware revision is in this individual phone.
+
+The exact A.119 kernel includes IKCONFIG. Extracting it with the matching kernel source's `scripts/extract-ikconfig` confirmed `CONFIG_BLK_DEV_INITRD=y`, `CONFIG_RD_GZIP=y`, `CONFIG_BINFMT_ELF=y`, `CONFIG_BINFMT_SCRIPT=y`, `CONFIG_PROC_FS=y`, `CONFIG_SYSFS=y`, `CONFIG_TMPFS=y`, `CONFIG_UEVENT_HELPER=y`, and `# CONFIG_DEVTMPFS is not set`. The `CONFIG_UEVENT_HELPER_PATH` is empty. These facts shaped the initial ramdisk: static console/null device nodes, proc and sysfs mounts, then a one-time `mdev -s` scan. It has not been boot tested.
 
 Extracted analysis files (all ignored by Git):
 
 - `firmware/extracted/boot/boot.img`
 - `firmware/extracted/boot/kernel.bin`
 - `firmware/extracted/boot/ramdisk.img`
+- `firmware/extracted/boot/base.dtb`
 - `firmware/extracted/boot/dtbo.img`
 - `firmware/extracted/super/vendor_a.img`, `system_ext_a.img`, and `product_a.img`
 - Selected standalone LTE modem and DSP/co-processor firmware in `firmware/extracted/modem/`
@@ -72,11 +81,12 @@ The ZIP also includes `ResearchDownload.zip` (39,078,392 bytes), PAC configurati
 ## Stage status and next steps
 
 - Stage 1: complete for exact A.119 package identity, direct Realme-host download, local SHA-256, and ZIP CRC verification. Vendor-published checksum/signature verification is still unavailable.
-- Stage 2: PAC and boot analysis underway. The full PAC table, boot payload, super metadata, three logical ext4 images, vendor services, and selected modem/DSP blobs are inventoried. The larger `system_a` image, complete DTBO decode, and full vendor service/library dependency mapping remain outstanding.
+- Stage 2: PAC and boot analysis underway. The full PAC table, boot payload, super metadata, three logical ext4 images, vendor services, six DTBO entries, and selected modem/DSP blobs are inventoried. The larger `system_a` image, panel revision match, and full vendor service/library dependency mapping remain outstanding.
+- Build milestone: a small ARM64 BusyBox initramfs was generated and its compressed CPIO structure was inspected. It is not a boot image and has not been run on the phone.
 - Stage 3: the Realme open-source kernel source and an RMX3231 community Android device tree have been located separately. The device-tree source does not turn this package into a Linux ROM.
 - No operation has been performed on the phone. No image has been flashed, and no partition has been erased or formatted.
 
-The next safe step is comparing the six DTBO entries and RMX3231 panel variants with the pinned Realme kernel tree. Before any installation proposal, determine a recovery route and obtain read-only details of the current bootloader and physical partition state.
+The next safe step is to build a boot-image candidate around the A.119 kernel and matched DTBO only after the current bootloader state and a complete stock recovery route are known. No ADB, fastboot, or USB inspection tools are installed in this workspace, so no device connection or bootloader state was established. Do not attempt a phone operation until recovery feasibility is established.
 
 ## Sources
 
@@ -85,3 +95,4 @@ The next safe step is comparing the six DTBO entries and RMX3231 panel variants 
 - [Third-party RMX3231 firmware index](https://realme.hqloader.in/firmware.php), used to identify the matching direct Realme-hosted file; it is not the source of the downloaded bytes
 - [Open-source PAC extractor](https://github.com/bismoy-bot/PAC-Extractor), MIT-licensed Python parser inspected before use
 - [Android liblp metadata format](https://android.googlesource.com/platform/system/core/+/refs/heads/main/fs_mgr/liblp/include/liblp/metadata_format.h)
+- [Android boot image header format](https://android.googlesource.com/platform/system/tools/mkbootimg/+/refs/heads/main/include/bootimg/bootimg.h)

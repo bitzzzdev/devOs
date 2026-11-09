@@ -1,0 +1,27 @@
+#!/bin/busybox sh
+
+export PATH=/bin:/sbin
+
+mount -t proc -o nosuid,nodev,noexec proc /proc
+mount -t sysfs -o nosuid,nodev,noexec sysfs /sys
+mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /tmp
+mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
+mkdir -p /dev/pts /dev/shm
+mount -t devpts -o nosuid,noexec,mode=0620 devpts /dev/pts
+mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /dev/shm
+
+mdev -s
+if [ -w /proc/sys/kernel/hotplug ]; then
+	printf '%s\n' /sbin/mdev > /proc/sys/kernel/hotplug
+fi
+
+printf '\nDEVos RMX3231 minimal initramfs\n'
+printf 'No persistent partitions have been mounted.\n\n'
+uname -a
+printf '\nKernel command line:\n'
+cat /proc/cmdline
+printf '\nInteractive shell on the boot console. Type reboot to restart.\n'
+
+while :; do
+	sh -i </dev/console >/dev/console 2>&1
+done

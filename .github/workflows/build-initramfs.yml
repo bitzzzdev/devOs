@@ -1,0 +1,25 @@
+name: Build DEVos initramfs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  initramfs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Build ARM64 initramfs
+        run: python3 scripts/build_initramfs.py
+
+      - name: Check archive structure
+        run: |
+          gzip -t builds/devos-rmx3231-initramfs.cpio.gz
+          gzip -dc builds/devos-rmx3231-initramfs.cpio.gz | cpio -it >/dev/null

@@ -1,5 +1,5 @@
 # Boot work
 
-The device-specific Android tree identifies a v2 boot image, an ARM64 kernel, and a separate DTBO image. DEVos is expected to use a minimal Linux initramfs with the stock kernel first, then a rebuilt kernel after configuration and boot compatibility are established.
+The A.119 boot image has been parsed and its ARM64 kernel, ramdisk, and base DTB extracted. The separate DTBO entry selected for RMX3231 is identified. See [the boot strategy](../docs/boot-strategy.md) for image layout and recovery constraints.
 
-This is a design direction, not a verified boot-image recipe. The A.119 boot image has not yet been extracted. The phone is already boot-looping, so no boot image will be flashed as part of source analysis.
+The first Linux userspace is an ARM64 BusyBox initramfs. Its local CPIO/GZIP artifact is built with `python3 scripts/build_initramfs.py`. No modified Android boot image has been assembled or tested, and nothing has been flashed. The phone's bootloader and AVB state and a tested recovery route are still unknown.

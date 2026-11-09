@@ -4,7 +4,7 @@
 
 The source reports Linux 4.14.193 and includes the RMX3231 board overlay. It is licensed under the terms in its `COPYING` file. Keep the upstream license and source history intact.
 
-The generic `sprd_sharkl3_defconfig` enables ARM64, initramfs support, compatibility syscalls, ext4, F2FS, and the SC9863A clock driver. The community Lineage tree refers to `RMX3231_defconfig`, but that config is absent from the Realme kernel source. Do not use that name as a kernel build target. Kernel configuration and image generation remain pending inspection of A.119 and a reproducible build setup.
+The generic `sprd_sharkl3_defconfig` enables ARM64, initramfs support, compatibility syscalls, ext4, F2FS, and the SC9863A clock driver. The community Lineage tree refers to `RMX3231_defconfig`, but that config is absent from the Realme kernel source. Do not use that name as a kernel build target. The A.119 kernel reports version `4.14.193+-ab453` and embeds IKCONFIG; its extracted config enables initramfs, proc, sysfs, tmpfs, and usermode helpers but disables devtmpfs. Kernel rebuild tooling and a bootloader-safe image test remain pending.
 
 Initialize source after cloning DEVos with:
 
@@ -12,4 +12,4 @@ Initialize source after cloning DEVos with:
 git submodule update --init --recursive
 ```
 
-This command was not run from the DEVos repository because the repository was not initialized when the source was first downloaded. The same upstream source was cloned and inspected separately under `/tmp`.
+The current checkout pins this source as a submodule. Initialize it with the command above after cloning the DEVos repository.
