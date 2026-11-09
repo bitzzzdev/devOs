@@ -1,0 +1,19 @@
+# Local vendor firmware and extracted proprietary files
+/firmware/original/*
+!/firmware/original/.gitkeep
+/firmware/extracted/*
+!/firmware/extracted/.gitkeep
+
+# Build output and downloaded root filesystems
+/builds/*
+/rootfs/build/*
+/rootfs/cache/*
+
+# Temporary kernel builds; the source itself is tracked as a submodule
+/kernel/out/
+/kernel/build/
+
+# Editor and host artifacts
+.DS_Store
+*.swp
+*.swo

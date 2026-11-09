@@ -1,0 +1,50 @@
+partition_id	filename	byte_size	data_offset	file_flag	check_flag
+FDL2	fdl2-sign.bin	843796	128544	257	1
+FDL	fdl1-sign.bin	51428	972340	257	1
+Cache	cache.img	45132	1023768	1	1
+Trustos	tos-sign.bin	1931796	1068900	1	1
+Super	super.img	5242880000	3000696	1	1
+DTBO	dtbo.img	8388608	5245880696	1	1
+VBMETA_SYSTEM	vbmeta_system.img	4096	5254269304	1	1
+OCDT4	oppo216F1.bin	68	5254273400	1	1
+DSP_LTE_GGE	sharkl3_pubcp_SPA_DM_DSP.bin	10485760	5254273468	1	1
+EraseMisc		0	0	0	1
+VBMETA_SYSTEM_EXT	vbmeta_system_ext.img	2432	5264759228	1	1
+NV_LTE	sharkl3_pubcp_SPA_nvitem.bin	969364	5264761660	1	1
+GPS_BD	gnssbdmodem.bin	597923	5265731024	1	1
+My_preload	my_preload.img	853516640	5266328947	1	1
+GPS_GL	gnssmodem.bin	597923	6119845587	1	1
+SPLLoader	u-boot-spl-16k-sign.bin	55108	6120443510	1	1
+Persist	persist.img	2097152	6120498618	1	1
+EraseSysdumpdb		0	0	0	1
+ProdNV	prodnv.img	45132	6122595770	1	1
+Modem_WCN	PM_sharkl3_cm4_v2.bin	1386712	6122640902	1	1
+OCDT2	oppo20782.bin	68	6124027614	1	1
+Teecfg	teecfg-sign.bin	3668	6124027682	1	1
+DSP_LTE_LTE	sharkl3_pubcp_SPA_LTEA_DSP.bin	20971520	6124031350	1	1
+EraseUBOOTLOG		0	0	0	1
+EraseMetadata		0	0	0	1
+FLASH_LTE		0	0	0	1
+EraseUBOOT		0	0	0	1
+Fastboot_Logo	realme_720_1600.bmp	3456056	6145002870	1	1
+DFS	sharkl3_cm4_spaxy.bin	1048576	6148458926	1	1
+Odmko	odmko.img	471176	6149507502	1	1
+BootLogo	logo.bin	57069	6149978678	1	1
+VBMETA_VENDOR	vbmeta_vendor.img	4096	6150035747	1	1
+OCDT1	oppo20780.bin	68	6150039843	1	1
+OCDT6	Projectconfig.xml	660	6150039911	1	1
+OCDT5	oppo216F2.bin	68	6150040571	1	1
+BOOT	boot.img	67108864	6150040639	1	1
+Modem_LTE	SC9600_sharkl3_pubcp_SPA_modem.dat	26214400	6217149503	1	1
+OCDT3	oppo21673.bin	68	6243363903	1	1
+Socko	socko.img	53207176	6243363971	1	1
+VBMETA_PRODUCT	vbmeta_product.img	2432	6296571147	1	1
+VBMETA	vbmeta-sign.img	1048576	6296573579	1	1
+SML	sml-sign.bin	66868	6297622155	1	1
+UBOOTLoader	u-boot-sign.bin	843796	6297689023	1	1
+CONFILE		0	0	0	0
+Modem_LTE_DELTANV	sharkl3_pubcp_SPA_deltanv.bin	19231	6298532819	1	1
+PhaseCheck		0	0	0	1
+OCDT	oppo20781.bin	68	6298552050	1	1
+UserData	userdata.img	2457924	6298552118	1	1
+	RMX3231.xml	28316	6301010042	2	0

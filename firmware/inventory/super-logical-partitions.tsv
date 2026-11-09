@@ -1,0 +1,9 @@
+partition	logical_bytes	notes
+system_a	2884820992	one linear extent; populated
+system_b	0	reserved empty slot
+system_ext_a	390332416	one linear extent; ext4
+system_ext_b	0	reserved empty slot
+vendor_a	313634816	one linear extent; ext4
+vendor_b	0	reserved empty slot
+product_a	1071661056	one linear extent; ext4
+product_b	0	reserved empty slot
