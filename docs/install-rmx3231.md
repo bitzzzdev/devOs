@@ -113,6 +113,20 @@ If you generated a new key, the signed image hash will differ. The build metadat
 
 On macOS, use `shasum -a 256 <file>` in place of `sha256sum`. In PowerShell, use `Get-FileHash <file> -Algorithm SHA256`.
 
+## Optional GitHub Actions build
+
+The repository includes a manually triggered **Build DEVos boot candidate**
+workflow. It accepts an HTTPS URL and SHA-256 digest for the exact A.119 BOOT
+image, downloads and verifies that image on an ephemeral runner, then runs the
+same two build commands and uploads the image, metadata, public key, and
+initramfs as a 14-day artifact. The workflow does not publish the proprietary
+BOOT image or the private signing key.
+
+Start it from the repository's **Actions** tab. Enter the URL and digest only
+after independently checking that they refer to the RMX3231 A.119 BOOT image.
+The resulting artifact is a verified build candidate, not a release and not
+proof that the phone will accept or boot it.
+
 ## 4. Read-only phone checks, when the phone is accessible
 
 These checks only read information. They do not unlock, erase, or flash the phone. Install Android [Platform Tools](https://developer.android.com/tools/releases/platform-tools) on the computer first. The commands below are generic Fastboot queries and have not been tested on this RMX3231 bootloader. Do not use a key combination or recovery procedure guessed from another Realme model just to reach this step.

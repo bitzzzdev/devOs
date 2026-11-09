@@ -1,0 +1,87 @@
+name: Build DEVos boot candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      stock_boot_url:
+        description: HTTPS URL for the exact RMX3231 A.119 BOOT image
+        required: true
+        type: string
+      stock_boot_sha256:
+        description: SHA-256 digest of the BOOT image at that URL
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  boot-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Download and verify stock BOOT image
+        env:
+          STOCK_BOOT_URL: ${{ inputs.stock_boot_url }}
+          STOCK_BOOT_SHA256: ${{ inputs.stock_boot_sha256 }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import os
+          import pathlib
+          import re
+          import urllib.parse
+          import urllib.request
+
+          url = os.environ["STOCK_BOOT_URL"]
+          expected = os.environ["STOCK_BOOT_SHA256"].lower()
+          if urllib.parse.urlparse(url).scheme != "https":
+              raise SystemExit("stock_boot_url must use HTTPS")
+          if not re.fullmatch(r"[0-9a-f]{64}", expected):
+              raise SystemExit("stock_boot_sha256 must be a 64-character hex digest")
+
+          destination = pathlib.Path("firmware/extracted/boot/boot.img")
+          destination.parent.mkdir(parents=True, exist_ok=True)
+          temporary = destination.with_suffix(".img.part")
+          request = urllib.request.Request(
+              url,
+              headers={"User-Agent": "DEVos-GitHub-Actions/1"},
+          )
+          digest = hashlib.sha256()
+          with urllib.request.urlopen(request, timeout=120) as response:
+              with temporary.open("wb") as output:
+                  while block := response.read(1024 * 1024):
+                      output.write(block)
+                      digest.update(block)
+          actual = digest.hexdigest()
+          if actual != expected:
+              temporary.unlink(missing_ok=True)
+              raise SystemExit(
+                  f"BOOT image SHA-256 mismatch: expected {expected}, received {actual}"
+              )
+          temporary.replace(destination)
+          print(f"Verified stock BOOT image: {actual}")
+          PY
+
+      - name: Build ARM64 initramfs
+        run: python3 scripts/build_initramfs.py
+
+      - name: Build and verify boot candidate
+        run: python3 scripts/build_boot_image.py
+
+      - name: Inspect generated Android boot image
+        run: python3 scripts/inspect_android_boot.py builds/devos-rmx3231-a119-boot-custom-avb.img
+
+      - name: Upload boot candidate artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: devos-rmx3231-a119-boot-candidate
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            builds/devos-rmx3231-a119-boot-custom-avb.img
+            builds/devos-rmx3231-a119-boot-custom-avb.img.json
+            builds/devos-rmx3231-a119-boot-custom-avb.img.avbpubkey.bin
+            builds/devos-rmx3231-initramfs.cpio.gz

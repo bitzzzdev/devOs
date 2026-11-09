@@ -24,7 +24,7 @@ There is no verified, device-tested native Linux image for RMX3231 in the source
 
 This repository contains source and an untested boot-image candidate, not a verified bootable DEVos release. Read the [RMX3231 installation guide](docs/install-rmx3231.md) before preparing a local build. It explains the firmware checks, build steps, and why flashing is not currently supported.
 
-To reproduce the local candidate, first extract the exact RMX3231 A.119 `BOOT` partition image to `firmware/extracted/boot/boot.img`, then run:
+To reproduce the local candidate, first extract the exact RMX3231 A.119 `BOOT` partition image as described in the [installation guide](docs/install-rmx3231.md), then run:
 
 ```sh
 python3 scripts/build_initramfs.py
@@ -38,6 +38,12 @@ The build downloads a pinned AOSP `avbtool.py` and creates a local RSA-4096 sign
 The current inventory identifies the boot image, kernel, ramdisk, DTBO, AVB metadata, modem payload entries, and a 5 GiB dynamic-partition super image. DTBO entry 0 matches the RMX3231 vendor overlay and its `androidboot.dtbo_idx=0` selection. The local candidate retains the stock kernel and DTB wrapper, replaces the ramdisk, adds a locally signed AVB hash descriptor, and pads to the A.119 package's 64 MiB BOOT entry size. Its key differs from the Realme key pinned in root vbmeta. The package size does not confirm the phone's current live partition size. Nothing in this repository is an installation guide.
 
 GitHub Actions builds and inspects the minimal initramfs on pushes and pull requests. Local build instructions are in [rootfs/README.md](rootfs/README.md), and the current boot constraints are in [the boot strategy](docs/boot-strategy.md).
+
+The **Build DEVos boot candidate** workflow can assemble the full image on demand.
+It requires a URL and SHA-256 digest for an exact, device-matched A.119 BOOT
+image, keeps that proprietary input out of the repository, and uploads only the
+short-lived build artifacts. A successful workflow run proves image assembly and
+local AVB verification, not that the phone accepts or boots the image.
 
 The upstream kernel source's optional tools read `LOG_FILE`, `PERF_EXEC_PATH`, `READELF`, `SPHINX_CONF`, `SUDO_GID`, `SUDO_UID`, `SUDO_USER`, and `USER`. The downloaded AOSP AVB tool optionally reads `AVB_INVOCATION_LOGFILE`. These are controls for those upstream utilities, not DEVos configuration; DEVos does not set them. See [kernel tool notes](kernel/README.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
 
