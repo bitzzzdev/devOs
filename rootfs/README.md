@@ -14,7 +14,7 @@ The script downloads Debian's `busybox-static` 1.37.0-6+b9 ARM64 package when it
 
 The initramfs has a static BusyBox shell, basic device nodes, proc/sysfs mounts, `mdev`, and an interactive shell on the boot console. It does not mount or write persistent partitions. The stock A.119 kernel config disables devtmpfs, so the archive supplies `/dev/console` and uses `mdev` to populate device nodes from sysfs.
 
-The archive has been built and its gzip and CPIO structure inspected. It has not been booted on hardware. After extracting the exact A.119 BOOT image to `firmware/extracted/boot/boot.img`, run `python3 scripts/build_boot_image.py` to assemble an unsigned 64 MiB Android boot-image candidate at `builds/devos-rmx3231-a119-boot-unsigned.img`. The candidate retains the stock kernel and DTB wrapper but removes Realme's AVB footer and vbmeta because their signature does not cover the changed ramdisk. It does not establish that this phone's bootloader will accept the image.
+The archive has been built and its gzip and CPIO structure inspected. It has not been booted on hardware. After extracting the exact A.119 BOOT image to `firmware/extracted/boot/boot.img`, run `python3 scripts/build_boot_image.py` to assemble a custom-key AVB-signed 64 MiB Android boot-image candidate at `builds/devos-rmx3231-a119-boot-custom-avb.img`. The candidate retains the stock kernel and DTB wrapper and signs a hash descriptor for the changed boot image. AOSP AVB verification succeeds with the local development key, but that key differs from the Realme key pinned by root vbmeta. Device acceptance is unverified, and the build does not establish that this phone will boot the image.
 
 ## Deferred userspace
 

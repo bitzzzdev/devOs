@@ -5,7 +5,7 @@ All notable changes to DEVos are listed here.
 ## [Unreleased]
 
 ### Added
-- Assembled a local 64 MiB unsigned A.119 boot-image candidate using the stock RMX3231 kernel and DTB with the DEVos initramfs.
+- Assembled a local 64 MiB A.119 boot-image candidate with a self-verified custom AVB signature.
 - Initial RMX3231 development workspace and hardware-source research.
 - Pinned Realme kernel source for the RMX3231 and SC9863A platform.
 - Recorded the A.119 PAC partition table and inspected the boot image, ARM64 kernel, first-stage fstab, ramdisk, DTBO header, and AVB metadata.
