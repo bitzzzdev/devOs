@@ -18,6 +18,15 @@ package. The binary and generated initramfs are excluded from Git. BusyBox is
 GPL-2.0-only; see [the dependency notes](rootfs/DEPENDENCIES.md) for the
 package version, source record, and distribution obligations.
 
+## Android Verified Boot tool
+
+The boot-image builder downloads AOSP `avbtool.py` at build time from the
+pinned `platform/external/avb` revision
+`761178607206f4cb2af79ed9eec52d8cbd814adb`. The source carries its MIT
+license notice. It is cached locally under ignored `rootfs/cache/` and is
+not committed with DEVos. The tool optionally reads `AVB_INVOCATION_LOGFILE`
+to append its command invocations; DEVos does not set this variable.
+
 ## Realme firmware
 
 The stock A.119 ZIP and extracted proprietary files are not included in this
