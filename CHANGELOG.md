@@ -4,6 +4,8 @@ All notable changes to DEVos are listed here.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-10
+
 ### Added
 - Added an interactive multi-boot selector in `rootfs/init` with support for four operational modes: Pocket VPS, Wi-Fi Router, Dual Mode, and Regular Barebones (Stock Android).
 - Added dedicated mode execution scripts in `rootfs/sbin/`: `devos-mode-vps`, `devos-mode-router`, `devos-mode-dual`, and `devos-mode-android`.
