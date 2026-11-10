@@ -4,6 +4,9 @@ All notable changes to DEVos are listed here.
 
 ## [Unreleased]
 
+### Added
+- Added `docs/troubleshooting.md` documenting root causes and resolution steps for the unlocked bootloader splash-screen boot loop issue on Realme C11 2021 (RMX3231).
+
 ## [0.1.0] - 2026-11-10
 
 ### Added

@@ -176,6 +176,13 @@ The maintainers need to establish all of the following on the actual RMX3231 and
 
 Until these checks are documented, DEVos has no supported installation procedure. The most useful next step is to establish device detection and a verified stock recovery route without writing to the phone. See [the boot strategy](boot-strategy.md) for the evidence gathered so far and [hardware compatibility](hardware-compatibility.md) for the remaining Linux support work.
 
+## Troubleshooting boot loops and recovery
+
+If the device enters a boot loop displaying `LOCK FLAG STATUS : UNLOCKED !!!` followed by the white Realme splash logo and continuously restarting:
+1. Break the loop by holding **Power + Volume Down** for 12 seconds until the screen shuts off.
+2. Hold **Volume Up + Power** to enter Fastboot mode.
+3. Consult the recovery steps in the [troubleshooting guide](troubleshooting.md) to diagnose active slot flips, clear encrypted userdata loops, or perform a factory restore via Unisoc BROM mode.
+
 ## Current image status
 
 The candidate preserves the A.119 kernel and base device tree, but replaces Android's ramdisk with a minimal Linux initramfs. It is signed by a locally generated key. Realme's root vbmeta pins a different key for the boot chain, so the candidate cannot be assumed to boot while the bootloader is locked. RMX3231 acceptance of this custom-key image is unverified. The candidate has not been booted on hardware, and its 64 MiB size comes from the A.119 package, not from a live read of this phone's partition table.
