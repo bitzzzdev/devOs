@@ -5,6 +5,13 @@ All notable changes to DEVos are listed here.
 ## [Unreleased]
 
 ### Added
+- Added an interactive multi-boot selector in `rootfs/init` with support for four operational modes: Pocket VPS, Wi-Fi Router, Dual Mode, and Regular Barebones (Stock Android).
+- Added dedicated mode execution scripts in `rootfs/sbin/`: `devos-mode-vps`, `devos-mode-router`, `devos-mode-dual`, and `devos-mode-android`.
+- Added stock Android ramdisk embedding and root handover in Barebones mode, preserving camera, microphone, cellular telephony, mobile data, and Wi-Fi functionality while keeping dynamic partitions on `super.img` untouched for UPI banking compatibility.
+- Added `scripts/build_flashable_package.py` to produce a single-file flashable ISO installer (`builds/devos-rmx3231-installer.iso`) and flashable ZIP bundle (`builds/devos-rmx3231-flashable.zip`) containing automated fastboot flasher scripts for Linux, macOS, and Windows.
+- Updated the boot candidate workflow in `.github/workflows/build-boot-candidate.yml` to package and upload the single-file flashable installer ISO and ZIP artifacts.
+- Added an automated test suite in `tests/` covering shell script syntax, initramfs entry verification, and flashable package generation.
+- Added documentation for the multi-boot architecture and network configurations in `docs/multiboot-modes.md`.
 - Added a manually triggered workflow that downloads a caller-supplied,
   checksum-verified A.119 BOOT image, builds the full candidate, verifies its
   AVB signature, and uploads short-lived artifacts without storing firmware.

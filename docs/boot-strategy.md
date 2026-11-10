@@ -22,6 +22,30 @@ The original A.119 ZIP includes a full PAC package, FDL loader binaries, and `Re
 
 The workspace has no `adb`, `fastboot`, or `lsusb` tools, so no device connection, bootloader state, or live partition information was established. Until these facts are known, do not try a modified image or PAC operation. The phone has not been changed by this project.
 
+## Multi-boot architecture and stock Android handover
+
+The candidate initramfs incorporates a multi-boot selector capable of launching four runtime modes:
+1. Pocket VPS (headless Linux server over USB-RNDIS)
+2. Wi-Fi Router (AP hotspot, DHCP gateway, NAT routing)
+3. Dual Mode (Pocket VPS and Wi-Fi Router combined)
+4. Regular Barebones (Stock Android handover)
+
+When Mode 4 (Regular Barebones) is chosen, the DEVos init process locates the stock Android first-stage initramfs (embedded inside the candidate boot image as `/stock_ramdisk.cpio.gz`), unpacks it to `/stock_root`, unmounts early DEVos virtual filesystems, and invokes `switch_root` to start `/init`.
+
+Because the underlying dynamic partitions (`system`, `vendor`, `product`, `system_ext`) on `super.img` remain completely untouched, the stock Android system launches with all original vendor HALs, preserving complete hardware access for the camera, microphone, cellular voice and data, and Wi-Fi.
+
+## Single-file flashable installer packaging
+
+To simplify device installation, `scripts/build_flashable_package.py` packages the 64 MiB custom-key AVB candidate into a single-file flashable installer ISO (`builds/devos-rmx3231-installer.iso`) and flashable ZIP (`builds/devos-rmx3231-flashable.zip`).
+
+The package contains:
+- `boot.img`: The signed multi-boot candidate boot partition image.
+- `flash.sh`: Automated fastboot flasher script for Linux and macOS.
+- `flash.bat`: Automated fastboot flasher script for Windows.
+- `manifest.json`: Machine-readable target device and image metadata.
+- `checksums.sha256`: Cryptographic integrity digests.
+- `README.txt`: Operational instructions for flashing and boot selection.
+
 ## Local build artifact
 
 Run `python3 scripts/build_initramfs.py` and then `python3 scripts/build_boot_image.py` to create the initramfs and AVB-signed boot-image candidate. The second command requires the locally extracted stock A.119 image at `firmware/extracted/boot/boot.img`, OpenSSL, and network access to fetch the pinned AOSP AVB tool. It generates a local signing key if absent. Source firmware, private key, and generated artifacts are excluded from Git. The initramfs uses Debian's statically linked ARM64 BusyBox package pinned by version and SHA-256 in the script. The candidate has not been booted on hardware.

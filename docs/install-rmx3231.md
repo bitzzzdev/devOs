@@ -80,20 +80,36 @@ Expected BOOT image SHA-256:
 
 Do not substitute a BOOT image from another build or model. The project inventory explains the PAC contents and the limits of what the package proves.
 
-## 3. Build the local candidate
+## 3. Build the local candidate and flashable installer
 
-Build the small ARM64 BusyBox initramfs, then assemble the image:
+Build the multi-boot ARM64 initramfs, assemble the signed boot image, and create the single-file flashable installer package:
 
 ```sh
 python3 scripts/build_initramfs.py
 python3 scripts/build_boot_image.py
+python3 scripts/build_flashable_package.py
 ```
 
-The first command downloads a pinned Debian ARM64 BusyBox package and checks its SHA-256. The second checks the stock boot image against the expected A.119 kernel and device tree, downloads a pinned AOSP AVB tool, and creates a local RSA signing key if one does not exist. It writes the candidate here:
+The first command builds the ARM64 initramfs containing the multi-boot selector and operational mode scripts. The second checks the stock boot image against the expected A.119 kernel and device tree, downloads a pinned AOSP AVB tool, embeds the stock Android ramdisk payload, and creates a local RSA signing key if one does not exist. It writes the candidate here:
 
 ```text
 builds/devos-rmx3231-a119-boot-custom-avb.img
 ```
+
+The third command packages the boot candidate into a single-file flashable installer ISO and flashable ZIP bundle:
+
+```text
+builds/devos-rmx3231-installer.iso
+builds/devos-rmx3231-flashable.zip
+```
+
+The installer ISO is formatted as standard ISO-9660. It can be mounted on Linux, macOS, or Windows and contains:
+- `boot.img`: The 64 MiB multi-boot candidate boot image.
+- `flash.sh`: An automated fastboot flasher for Linux and macOS.
+- `flash.bat`: An automated fastboot flasher for Windows.
+- `manifest.json`: Target device specifications and image metadata.
+- `checksums.sha256`: Cryptographic verification digests.
+- `README.txt`: Operational instructions for flashing and boot mode selection.
 
 The private key is stored at `builds/keys/devos-avb-rsa4096.pem`. Keep it private and backed up if you need to reproduce the same signed image. It is ignored by Git and must never be uploaded or shared. The generated image and firmware are also excluded from Git, so cloning the repository alone does not provide a ready-made image.
 
@@ -117,10 +133,10 @@ On macOS, use `shasum -a 256 <file>` in place of `sha256sum`. In PowerShell, use
 
 The repository includes a manually triggered **Build DEVos boot candidate**
 workflow. It accepts an HTTPS URL and SHA-256 digest for the exact A.119 BOOT
-image, downloads and verifies that image on an ephemeral runner, then runs the
-same two build commands and uploads the image, metadata, public key, and
-initramfs as a 14-day artifact. The workflow does not publish the proprietary
-BOOT image or the private signing key.
+image, downloads and verifies that image on an ephemeral runner, builds the
+multi-boot candidate and the single-file flashable installer ISO and ZIP,
+then uploads them as a 14-day artifact. The workflow does not publish the
+proprietary BOOT image or the private signing key.
 
 Start it from the repository's **Actions** tab. Enter the URL and digest only
 after independently checking that they refer to the RMX3231 A.119 BOOT image.

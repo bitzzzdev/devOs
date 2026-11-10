@@ -24,14 +24,26 @@ There is no verified, device-tested native Linux image for RMX3231 in the source
 
 This repository contains source and an untested boot-image candidate, not a verified bootable DEVos release. Read the [RMX3231 installation guide](docs/install-rmx3231.md) before preparing a local build. It explains the firmware checks, build steps, and why flashing is not currently supported.
 
-To reproduce the local candidate, first extract the exact RMX3231 A.119 `BOOT` partition image as described in the [installation guide](docs/install-rmx3231.md), then run:
+To reproduce the local candidate and generate the flashable installer package, first extract the exact RMX3231 A.119 `BOOT` partition image as described in the [installation guide](docs/install-rmx3231.md), then run:
 
 ```sh
 python3 scripts/build_initramfs.py
 python3 scripts/build_boot_image.py
+python3 scripts/build_flashable_package.py
 ```
 
-The build downloads a pinned AOSP `avbtool.py` and creates a local RSA-4096 signing key if one is not already present. It produces a self-verified AVB image signed by that local key. The Realme root vbmeta pins a different key for `boot`, so standard AVB semantics require an unlocked bootloader to tolerate the key mismatch. RMX3231 bootloader acceptance and the recovery route are unknown. Do not flash it yet, and never share the private key. Clone the kernel source with `git submodule update --init --recursive`, then read [the firmware inventory](firmware/inventory/stage-1-2.md), [ROM research](docs/rom-research.md), [hardware compatibility](docs/hardware-compatibility.md), and [boot strategy](docs/boot-strategy.md) before making device changes. Local firmware downloads, signing keys, and generated images are excluded from Git.
+The build downloads a pinned AOSP `avbtool.py` and creates a local RSA-4096 signing key if one is not already present. It produces a self-verified AVB image signed by that local key, embeds the stock Android ramdisk for barebones fallback, and packages the result into a single-file flashable installer ISO (devos-rmx3231-installer.iso) and flashable ZIP (devos-rmx3231-flashable.zip) under the builds directory. The Realme root vbmeta pins a different key for `boot`, so standard AVB semantics require an unlocked bootloader to tolerate the key mismatch. RMX3231 bootloader acceptance and the recovery route are unknown. Do not flash it yet, and never share the private key. Clone the kernel source with `git submodule update --init --recursive`, then read [the firmware inventory](firmware/inventory/stage-1-2.md), [ROM research](docs/rom-research.md), [hardware compatibility](docs/hardware-compatibility.md), [boot strategy](docs/boot-strategy.md), and [multi-boot operational modes](docs/multiboot-modes.md) before making device changes. Local firmware downloads, signing keys, and generated images are excluded from Git.
+
+## Multi-boot operating modes
+
+When booted on hardware, the DEVos early initramfs displays an interactive multi-boot selector offering four operating modes:
+
+1. **Pocket VPS**: Headless Linux server with USB gadget networking (RNDIS/CDC-Ethernet, device IP `192.168.7.2`, host `192.168.7.1`), DHCP server, and SSH daemon.
+2. **Wi-Fi Router**: Wireless access point (`192.168.43.1`), DHCP server pool, DNS service, and IPv4 NAT packet forwarding.
+3. **Dual Mode**: Combines Pocket VPS and Wi-Fi Router, allowing simultaneous access over USB and Wi-Fi.
+4. **Regular Barebones**: Hands control over to the stock Android first-stage init. Loads full stock Android where all device hardware functions normally, including camera, microphone, cellular phone calls and SMS, 4G mobile data, and Wi-Fi. Because stock system and vendor partitions on `super.img` remain untouched, UPI banking applications have the highest degree of compatibility.
+
+See [docs/multiboot-modes.md](docs/multiboot-modes.md) for full network parameters and mode specifications.
 
 ## Development status
 
@@ -41,9 +53,10 @@ GitHub Actions builds and inspects the minimal initramfs on pushes and pull requ
 
 The **Build DEVos boot candidate** workflow can assemble the full image on demand.
 It requires a URL and SHA-256 digest for an exact, device-matched A.119 BOOT
-image, keeps that proprietary input out of the repository, and uploads only the
-short-lived build artifacts. A successful workflow run proves image assembly and
-local AVB verification, not that the phone accepts or boots the image.
+image, keeps that proprietary input out of the repository, builds the multi-boot
+candidate with embedded stock Android ramdisk, packages the single-file flashable
+installer ISO and ZIP, and uploads the build artifacts. A successful workflow run
+proves image assembly and local AVB verification, not that the phone accepts or boots the image.
 
 The upstream kernel source's optional tools read `LOG_FILE`, `PERF_EXEC_PATH`, `READELF`, `SPHINX_CONF`, `SUDO_GID`, `SUDO_UID`, `SUDO_USER`, and `USER`. The downloaded AOSP AVB tool optionally reads `AVB_INVOCATION_LOGFILE`. These are controls for those upstream utilities, not DEVos configuration; DEVos does not set them. See [kernel tool notes](kernel/README.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
 
