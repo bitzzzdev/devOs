@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -21,6 +22,9 @@ import sys
 import tempfile
 import urllib.request
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.resolve()))
+from build_initramfs import newc_entry
 
 
 BOOT_MAGIC = b"ANDROID!"
@@ -239,6 +243,7 @@ def build(
     output_path: Path,
     avbtool_path: Path,
     key_path: Path,
+    embed_stock_ramdisk: bool = True,
 ) -> dict[str, object]:
     stock = stock_path.read_bytes()
     info = inspect_stock(stock)
@@ -247,6 +252,24 @@ def build(
     names = cpio_names(archive)
     if "init" not in names or "bin/busybox" not in names:
         raise ValueError("initramfs must contain init and bin/busybox")
+
+    # If requested and not already present, embed the stock Android ramdisk
+    # so Mode 4 (Regular Barebones) can switch_root to stock Android.
+    if embed_stock_ramdisk and "stock_ramdisk.cpio.gz" not in names:
+        stock_ramdisk_bytes = info["ramdisk"]
+        trailer_idx = archive.rfind(b"070701")
+        if trailer_idx != -1 and b"TRAILER!!!" in archive[trailer_idx:]:
+            entry = newc_entry(
+                "stock_ramdisk.cpio.gz", 9999, 0o100644, stock_ramdisk_bytes
+            )
+            trailer = newc_entry("TRAILER!!!", 10000, 0, b"")
+            augmented_archive = archive[:trailer_idx] + entry + trailer
+            out_stream = io.BytesIO()
+            with gzip.GzipFile(
+                filename="", mode="wb", fileobj=out_stream, compresslevel=9, mtime=0
+            ) as gz:
+                gz.write(augmented_archive)
+            ramdisk = out_stream.getvalue()
 
     kernel = info["kernel"]
     dtb_wrapper = info["dtb_wrapper"]
@@ -407,6 +430,13 @@ def main() -> int:
         default=Path("builds/keys/devos-avb-rsa4096.pem"),
         help="local RSA-4096 AVB private key; generated if absent, never upload it",
     )
+    parser.add_argument(
+        "--no-embed-stock-ramdisk",
+        action="store_false",
+        dest="embed_stock_ramdisk",
+        default=True,
+        help="do not embed stock Android ramdisk payload into initramfs",
+    )
     args = parser.parse_args()
     try:
         result = build(
@@ -415,6 +445,7 @@ def main() -> int:
             args.output,
             args.avbtool,
             args.avb_key,
+            embed_stock_ramdisk=args.embed_stock_ramdisk,
         )
     except (OSError, ValueError, struct.error, subprocess.SubprocessError) as error:
         parser.error(str(error))

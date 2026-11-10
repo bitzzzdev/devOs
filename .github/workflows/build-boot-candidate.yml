@@ -74,13 +74,26 @@ jobs:
       - name: Inspect generated Android boot image
         run: python3 scripts/inspect_android_boot.py builds/devos-rmx3231-a119-boot-custom-avb.img
 
-      - name: Upload boot candidate artifacts
+      - name: Install ISO packaging utilities
+        run: sudo apt-get update && sudo apt-get install -y genisoimage
+
+      - name: Build single-file flashable ISO and ZIP installer
+        run: python3 scripts/build_flashable_package.py
+
+      - name: Run verification test suite
+        run: python3 -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Upload boot candidate and flashable installer artifacts
         uses: actions/upload-artifact@v4
         with:
           name: devos-rmx3231-a119-boot-candidate
           if-no-files-found: error
           retention-days: 14
           path: |
+            builds/devos-rmx3231-installer.iso
+            builds/devos-rmx3231-installer.iso.sha256
+            builds/devos-rmx3231-flashable.zip
+            builds/devos-rmx3231-flashable.zip.sha256
             builds/devos-rmx3231-a119-boot-custom-avb.img
             builds/devos-rmx3231-a119-boot-custom-avb.img.json
             builds/devos-rmx3231-a119-boot-custom-avb.img.avbpubkey.bin

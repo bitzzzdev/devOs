@@ -1,7 +1,8 @@
 #!/bin/busybox sh
 
-export PATH=/bin:/sbin
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
+# 1. Mount essential filesystems
 mount -t proc -o nosuid,nodev,noexec proc /proc
 mount -t sysfs -o nosuid,nodev,noexec sysfs /sys
 mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /tmp
@@ -10,18 +11,123 @@ mkdir -p /dev/pts /dev/shm
 mount -t devpts -o nosuid,noexec,mode=0620 devpts /dev/pts
 mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /dev/shm
 
+# 2. Populate devices
 mdev -s
 if [ -w /proc/sys/kernel/hotplug ]; then
 	printf '%s\n' /sbin/mdev > /proc/sys/kernel/hotplug
 fi
 
-printf '\nDEVos RMX3231 minimal initramfs\n'
-printf 'No persistent partitions have been mounted.\n\n'
-uname -a
-printf '\nKernel command line:\n'
-cat /proc/cmdline
-printf '\nInteractive shell on the boot console. Type reboot to restart.\n'
+# 3. Ensure applet symlinks are available
+/bin/busybox --install -s /bin 2>/dev/null || true
+/bin/busybox --install -s /sbin 2>/dev/null || true
 
+# 4. Load configuration defaults
+if [ -f /etc/devos.conf ]; then
+	. /etc/devos.conf
+fi
+
+DEFAULT_MODE="${DEVOS_DEFAULT_MODE:-4}"
+TIMEOUT="${DEVOS_BOOT_TIMEOUT:-5}"
+SELECTED_MODE=""
+
+# 5. Check kernel command line override
+for param in $(cat /proc/cmdline); do
+	case "$param" in
+		devos.mode=1|devos.mode=vps)
+			SELECTED_MODE=1
+			;;
+		devos.mode=2|devos.mode=router)
+			SELECTED_MODE=2
+			;;
+		devos.mode=3|devos.mode=dual)
+			SELECTED_MODE=3
+			;;
+		devos.mode=4|devos.mode=android|devos.mode=barebones)
+			SELECTED_MODE=4
+			;;
+	esac
+done
+
+# 6. Display multi-boot banner and menu
+printf '\n'
+printf '================================================================\n'
+printf '                  DEVos Multi-Boot Selector\n'
+printf '               Hardware: Realme C11 2021 (RMX3231)\n'
+printf '================================================================\n'
+printf '  [1] Pocket VPS          - Headless Linux server (SSH/RNDIS)\n'
+printf '  [2] Wi-Fi Router        - AP hotspot, DHCP gateway, NAT routing\n'
+printf '  [3] Dual Mode           - Pocket VPS + Wi-Fi Router combined\n'
+printf '  [4] Regular Barebones   - Boot normal Android (Full phone/calls)\n'
+printf '================================================================\n'
+
+if [ -n "$SELECTED_MODE" ]; then
+	printf 'Kernel command line selected mode: %s\n' "$SELECTED_MODE"
+else
+	printf 'Select mode [1-4] or wait %s seconds for default (Mode %s)...\n' "$TIMEOUT" "$DEFAULT_MODE"
+	remaining=$TIMEOUT
+	while [ $remaining -gt 0 ]; do
+		printf 'Selection (auto-booting in %s s): ' "$remaining"
+		if read -t 1 -r choice </dev/console 2>/dev/null; then
+			case "$choice" in
+				1|vps)
+					SELECTED_MODE=1
+					break
+					;;
+				2|router)
+					SELECTED_MODE=2
+					break
+					;;
+				3|dual)
+					SELECTED_MODE=3
+					break
+					;;
+				4|android|barebones)
+					SELECTED_MODE=4
+					break
+					;;
+				*)
+					printf '\nInvalid choice. Options are 1, 2, 3, or 4.\n'
+					;;
+			esac
+		fi
+		remaining=$((remaining - 1))
+		printf '\r'
+	done
+
+	if [ -z "$SELECTED_MODE" ]; then
+		SELECTED_MODE="$DEFAULT_MODE"
+		printf '\nTimeout reached. Launching default mode: %s\n' "$SELECTED_MODE"
+	else
+		printf '\nSelected mode: %s\n' "$SELECTED_MODE"
+	fi
+fi
+
+# 7. Execute selected mode
+case "$SELECTED_MODE" in
+	1)
+		if [ -x /sbin/devos-mode-vps ]; then
+			exec /sbin/devos-mode-vps
+		fi
+		;;
+	2)
+		if [ -x /sbin/devos-mode-router ]; then
+			exec /sbin/devos-mode-router
+		fi
+		;;
+	3)
+		if [ -x /sbin/devos-mode-dual ]; then
+			exec /sbin/devos-mode-dual
+		fi
+		;;
+	4|*)
+		if [ -x /sbin/devos-mode-android ]; then
+			exec /sbin/devos-mode-android
+		fi
+		;;
+esac
+
+# Fallback: interactive shell
+printf '\nWarning: Mode launcher returned. Dropping to interactive shell.\n'
 while :; do
 	sh -i </dev/console >/dev/console 2>&1
 done

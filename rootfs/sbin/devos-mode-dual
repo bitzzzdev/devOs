@@ -1,0 +1,106 @@
+#!/bin/busybox sh
+# DEVos Mode 3: Dual Mode (Pocket VPS + Wi-Fi Router combined)
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+if [ -f /etc/devos.conf ]; then
+	. /etc/devos.conf
+fi
+
+VPS_IP="${DEVOS_VPS_IP:-192.168.7.2}"
+VPS_NETMASK="${DEVOS_VPS_NETMASK:-255.255.255.0}"
+VPS_HOST_IP="${DEVOS_VPS_HOST_IP:-192.168.7.1}"
+SSH_PORT="${DEVOS_SSH_PORT:-22}"
+
+ROUTER_IP="${DEVOS_ROUTER_IP:-192.168.43.1}"
+ROUTER_NETMASK="${DEVOS_ROUTER_NETMASK:-255.255.255.0}"
+DHCP_START="${DEVOS_DHCP_START:-192.168.43.100}"
+DHCP_END="${DEVOS_DHCP_END:-192.168.43.200}"
+
+printf '\n========================================================\n'
+printf '     DEVos Mode 3: Dual Mode (Pocket VPS + Wi-Fi Router)\n'
+printf '========================================================\n\n'
+
+# 1. Enable packet routing
+if [ -w /proc/sys/net/ipv4/ip_forward ]; then
+	printf '1\n' > /proc/sys/net/ipv4/ip_forward
+	printf '[Dual] IPv4 routing enabled.\n'
+fi
+
+# 2. Configure USB gadget interface
+USB_IF=""
+for candidate in usb0 rndis0 eth0; do
+	if [ -d "/sys/class/net/$candidate" ]; then
+		USB_IF="$candidate"
+		break
+	fi
+done
+
+if [ -n "$USB_IF" ]; then
+	printf '[Dual] USB gadget interface: %s (%s)\n' "$USB_IF" "$VPS_IP"
+	ifconfig "$USB_IF" "$VPS_IP" netmask "$VPS_NETMASK" up 2>/dev/null || true
+
+	mkdir -p /var/lib/misc
+	touch /var/lib/misc/udhcpd.leases
+	cat > /tmp/udhcpd_vps.conf <<-EOF
+		start $VPS_HOST_IP
+		end $VPS_HOST_IP
+		interface $USB_IF
+		opt subnet $VPS_NETMASK
+		opt router $VPS_IP
+		opt lease 86400
+	EOF
+	udhcpd -f -S /tmp/udhcpd_vps.conf >/dev/null 2>&1 &
+fi
+
+# 3. Configure Wi-Fi interface
+WIFI_IF=""
+for candidate in wlan0 ap0 wlan1; do
+	if [ -d "/sys/class/net/$candidate" ]; then
+		WIFI_IF="$candidate"
+		break
+	fi
+done
+
+if [ -n "$WIFI_IF" ]; then
+	printf '[Dual] Wi-Fi interface: %s (%s)\n' "$WIFI_IF" "$ROUTER_IP"
+	ifconfig "$WIFI_IF" "$ROUTER_IP" netmask "$ROUTER_NETMASK" up 2>/dev/null || true
+
+	cat > /tmp/udhcpd_router.conf <<-EOF
+		start $DHCP_START
+		end $DHCP_END
+		interface $WIFI_IF
+		opt subnet $ROUTER_NETMASK
+		opt router $ROUTER_IP
+		opt dns $ROUTER_IP 8.8.8.8
+		opt lease 43200
+	EOF
+	udhcpd -f -S /tmp/udhcpd_router.conf >/dev/null 2>&1 &
+fi
+
+# 4. NAT masquerade
+if command -v iptables >/dev/null 2>&1; then
+	iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null || true
+fi
+
+# 5. Launch shell / SSH server across interfaces
+if command -v dropbear >/dev/null 2>&1; then
+	mkdir -p /etc/dropbear
+	if [ ! -f /etc/dropbear/dropbear_rsa_host_key ]; then
+		dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key >/dev/null 2>&1 || true
+	fi
+	dropbear -p "$SSH_PORT" -B >/dev/null 2>&1 || true
+	printf '[Dual] Dropbear SSH server listening on port %s.\n' "$SSH_PORT"
+else
+	telnetd -p "$SSH_PORT" -l /bin/sh >/dev/null 2>&1 || true
+	printf '[Dual] BusyBox server listening on port %s.\n' "$SSH_PORT"
+fi
+
+printf '\n[Dual] Services active:\n'
+printf '       - Pocket VPS: USB at %s, Wi-Fi at %s\n' "$VPS_IP" "$ROUTER_IP"
+printf '       - Wi-Fi Router AP: %s (DHCP pool %s - %s)\n' "$ROUTER_IP" "$DHCP_START" "$DHCP_END"
+printf '\nStarting interactive root console. Type exit or reboot to finish.\n'
+
+while :; do
+	sh -i </dev/console >/dev/console 2>&1
+done

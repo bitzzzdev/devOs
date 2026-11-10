@@ -1,0 +1,67 @@
+#!/bin/busybox sh
+# DEVos Mode 2: Wi-Fi Router (AP Hotspot, DHCP, Gateway NAT)
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+if [ -f /etc/devos.conf ]; then
+	. /etc/devos.conf
+fi
+
+ROUTER_IP="${DEVOS_ROUTER_IP:-192.168.43.1}"
+ROUTER_NETMASK="${DEVOS_ROUTER_NETMASK:-255.255.255.0}"
+DHCP_START="${DEVOS_DHCP_START:-192.168.43.100}"
+DHCP_END="${DEVOS_DHCP_END:-192.168.43.200}"
+
+printf '\n========================================================\n'
+printf '        DEVos Mode 2: Wi-Fi Router (AP Hotspot)\n'
+printf '========================================================\n\n'
+
+# Enable kernel packet forwarding
+if [ -w /proc/sys/net/ipv4/ip_forward ]; then
+	printf '1\n' > /proc/sys/net/ipv4/ip_forward
+	printf '[Router] IPv4 forwarding enabled.\n'
+fi
+
+# Locate Wi-Fi network interface
+WIFI_IF=""
+for candidate in wlan0 ap0 wlan1; do
+	if [ -d "/sys/class/net/$candidate" ]; then
+		WIFI_IF="$candidate"
+		break
+	fi
+done
+
+if [ -n "$WIFI_IF" ]; then
+	printf '[Router] Configuring wireless interface: %s\n' "$WIFI_IF"
+	ifconfig "$WIFI_IF" "$ROUTER_IP" netmask "$ROUTER_NETMASK" up 2>/dev/null || true
+
+	# Start DHCP server for wireless clients
+	mkdir -p /var/lib/misc
+	touch /var/lib/misc/udhcpd.leases
+	cat > /tmp/udhcpd_router.conf <<-EOF
+		start $DHCP_START
+		end $DHCP_END
+		interface $WIFI_IF
+		opt subnet $ROUTER_NETMASK
+		opt router $ROUTER_IP
+		opt dns $ROUTER_IP 8.8.8.8
+		opt lease 43200
+	EOF
+	udhcpd -f -S /tmp/udhcpd_router.conf >/dev/null 2>&1 &
+	printf '[Router] DHCP pool: %s - %s\n' "$DHCP_START" "$DHCP_END"
+else
+	printf '[Router] Note: Wireless interface not yet detected.\n'
+fi
+
+# Set up iptables NAT masquerade if upstream interface exists
+if command -v iptables >/dev/null 2>&1; then
+	iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null || true
+	printf '[Router] Firewall NAT masquerade rule applied.\n'
+fi
+
+printf '\n[Router] Gateway address: %s\n' "$ROUTER_IP"
+printf 'Starting interactive root console. Type exit or reboot to finish.\n'
+
+while :; do
+	sh -i </dev/console >/dev/console 2>&1
+done

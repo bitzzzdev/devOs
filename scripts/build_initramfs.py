@@ -131,10 +131,30 @@ def newc_entry(
     return result
 
 
-def build_archive(busybox: bytes, init: bytes, output: Path) -> None:
+def build_archive(
+    busybox: bytes,
+    init: bytes,
+    output: Path,
+    rootfs_dir: Path | None = None,
+    stock_ramdisk: bytes | None = None,
+) -> None:
     entries: list[tuple[str, int, bytes, tuple[int, int]]] = []
     directories = (
-        "bin", "dev", "dev/pts", "dev/shm", "proc", "run", "sbin", "sys", "tmp"
+        "bin",
+        "dev",
+        "dev/pts",
+        "dev/shm",
+        "etc",
+        "proc",
+        "run",
+        "sbin",
+        "stock",
+        "stock_root",
+        "sys",
+        "tmp",
+        "var",
+        "var/lib",
+        "var/lib/misc",
     )
     for directory in directories:
         entries.append((directory, 0o040755, b"", (0, 0)))
@@ -142,9 +162,34 @@ def build_archive(busybox: bytes, init: bytes, output: Path) -> None:
     entries.append(("bin/busybox", 0o100755, busybox, (0, 0)))
     entries.append(("init", 0o100755, init, (0, 0)))
 
-    for applet in ("cat", "mkdir", "mount", "mdev", "reboot", "sh", "uname"):
+    # Include mode scripts and configuration if available
+    if rootfs_dir is not None:
+        mode_scripts = (
+            ("sbin/devos-mode-vps", 0o100755),
+            ("sbin/devos-mode-router", 0o100755),
+            ("sbin/devos-mode-dual", 0o100755),
+            ("sbin/devos-mode-android", 0o100755),
+            ("etc/devos.conf", 0o100644),
+        )
+        for rel_path, mode in mode_scripts:
+            full_path = rootfs_dir / rel_path
+            if full_path.exists():
+                entries.append((rel_path, mode, full_path.read_bytes(), (0, 0)))
+
+    if stock_ramdisk is not None:
+        entries.append(("stock_ramdisk.cpio.gz", 0o100644, stock_ramdisk, (0, 0)))
+
+    applets = (
+        "cat", "chroot", "cp", "cpio", "cut", "dd", "echo", "env", "grep",
+        "gunzip", "gzip", "head", "ifconfig", "ip", "iptables", "kill", "ls",
+        "mkdir", "mdev", "mount", "mv", "pivot_root", "printf", "ps", "read",
+        "reboot", "rm", "route", "sed", "sh", "sleep", "switch_root", "sync",
+        "tar", "telnetd", "test", "tr", "udhcpd", "umount", "uname", "["
+    )
+    for applet in applets:
         entries.append((f"bin/{applet}", 0o120777, b"busybox", (0, 0)))
     entries.append(("sbin/mdev", 0o120777, b"../bin/busybox", (0, 0)))
+    entries.append(("sbin/udhcpd", 0o120777, b"../bin/busybox", (0, 0)))
 
     for name, major, minor, mode in (
         ("console", 5, 1, 0o020600),
@@ -181,6 +226,18 @@ def main() -> int:
         "--init", type=Path, default=Path("rootfs/init"), help="init script path"
     )
     parser.add_argument(
+        "--rootfs-dir",
+        type=Path,
+        default=Path("rootfs"),
+        help="rootfs directory containing mode scripts and configs",
+    )
+    parser.add_argument(
+        "--stock-ramdisk",
+        type=Path,
+        default=None,
+        help="optional stock Android ramdisk to embed for barebones Android boot",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=Path("builds/devos-rmx3231-initramfs.cpio.gz"),
@@ -191,7 +248,14 @@ def main() -> int:
     download_package(args.package)
     busybox = package_busybox(args.package)
     check_arm64_static(busybox)
-    build_archive(busybox, args.init.read_bytes(), args.output)
+    stock_bytes = args.stock_ramdisk.read_bytes() if args.stock_ramdisk else None
+    build_archive(
+        busybox,
+        args.init.read_bytes(),
+        args.output,
+        rootfs_dir=args.rootfs_dir,
+        stock_ramdisk=stock_bytes,
+    )
     print(f"Built {args.output} ({args.output.stat().st_size} bytes)")
     print(f"BusyBox SHA-256: {hashlib.sha256(busybox).hexdigest()}")
     print(f"Initramfs SHA-256: {sha256(args.output)}")

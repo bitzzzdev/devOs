@@ -1,0 +1,66 @@
+#!/bin/busybox sh
+# DEVos Mode 4: Regular Barebones (Stock Android System)
+# Boots normal Android userspace with full phone functionality:
+# camera, microphone, cellular calling/data, Wi-Fi, and audio hardware.
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+printf '\n========================================================\n'
+printf '        DEVos Mode 4: Regular Barebones Android\n'
+printf '========================================================\n\n'
+printf '[Barebones Android] Loading stock Android first-stage init...\n'
+printf '[Barebones Android] Phone hardware active: camera, mic, modem, Wi-Fi.\n'
+
+# 1. Check for unpacked stock root
+if [ -x /stock/init ]; then
+	printf '[Barebones Android] Found stock init in /stock. Switching root...\n'
+	umount -l /dev/pts /dev/shm /tmp /run 2>/dev/null || true
+	umount -l /proc /sys 2>/dev/null || true
+	exec switch_root /stock /init
+fi
+
+# 2. Check for compressed stock ramdisk archive
+if [ -f /stock_ramdisk.cpio.gz ]; then
+	printf '[Barebones Android] Unpacking stock ramdisk archive to /stock_root...\n'
+	mkdir -p /stock_root
+	cd /stock_root || exit 1
+	gzip -dc /stock_ramdisk.cpio.gz | cpio -idmu >/dev/null 2>&1
+	cd / || exit 1
+	if [ -x /stock_root/init ]; then
+		printf '[Barebones Android] Stock init unpacked successfully. Handing over...\n'
+		umount -l /dev/pts /dev/shm /tmp /run 2>/dev/null || true
+		umount -l /proc /sys 2>/dev/null || true
+		exec switch_root /stock_root /init
+	fi
+fi
+
+if [ -f /stock_ramdisk.cpio ]; then
+	printf '[Barebones Android] Unpacking uncompressed stock ramdisk...\n'
+	mkdir -p /stock_root
+	cd /stock_root || exit 1
+	cpio -idmu < /stock_ramdisk.cpio >/dev/null 2>&1
+	cd / || exit 1
+	if [ -x /stock_root/init ]; then
+		printf '[Barebones Android] Stock init ready. Handing over...\n'
+		umount -l /dev/pts /dev/shm /tmp /run 2>/dev/null || true
+		umount -l /proc /sys 2>/dev/null || true
+		exec switch_root /stock_root /init
+	fi
+fi
+
+# 3. Fallback when stock ramdisk is not present
+printf '\n[Barebones Android] Stock ramdisk payload not found in this image build.\n'
+printf 'Scanning for persistent storage and super partition...\n'
+for candidate in /dev/block/by-name/super /dev/block/mmcblk0p* /dev/block/platform/*/*/by-name/super; do
+	if [ -b "$candidate" ]; then
+		printf '  Found partition: %s\n' "$candidate"
+	fi
+done
+
+printf '\nTo boot stock Android, ensure the candidate image was built with\n'
+printf 'the stock A.119 boot image input so the stock ramdisk is embedded.\n'
+printf 'Starting recovery shell.\n'
+
+while :; do
+	sh -i </dev/console >/dev/console 2>&1
+done

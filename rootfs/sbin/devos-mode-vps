@@ -1,0 +1,82 @@
+#!/bin/busybox sh
+# DEVos Mode 1: Pocket VPS (Headless Linux micro-server)
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+if [ -f /etc/devos.conf ]; then
+	. /etc/devos.conf
+fi
+
+VPS_IP="${DEVOS_VPS_IP:-192.168.7.2}"
+VPS_NETMASK="${DEVOS_VPS_NETMASK:-255.255.255.0}"
+VPS_HOST_IP="${DEVOS_VPS_HOST_IP:-192.168.7.1}"
+SSH_PORT="${DEVOS_SSH_PORT:-22}"
+
+printf '\n========================================================\n'
+printf '        DEVos Mode 1: Pocket VPS (Linux Server)\n'
+printf '========================================================\n\n'
+
+# Find USB network interface
+USB_IF=""
+for candidate in usb0 rndis0 eth0; do
+	if [ -d "/sys/class/net/$candidate" ]; then
+		USB_IF="$candidate"
+		break
+	fi
+done
+
+if [ -z "$USB_IF" ]; then
+	# Attempt to load USB gadget drivers if modular
+	modprobe g_ether 2>/dev/null || true
+	sleep 1
+	for candidate in usb0 rndis0 eth0; do
+		if [ -d "/sys/class/net/$candidate" ]; then
+			USB_IF="$candidate"
+			break
+		fi
+	done
+fi
+
+if [ -n "$USB_IF" ]; then
+	printf '[VPS] Configuring USB gadget interface: %s\n' "$USB_IF"
+	ifconfig "$USB_IF" "$VPS_IP" netmask "$VPS_NETMASK" up 2>/dev/null || true
+
+	# Start DHCP server for host on usb interface
+	mkdir -p /var/lib/misc
+	touch /var/lib/misc/udhcpd.leases
+	cat > /tmp/udhcpd_vps.conf <<-EOF
+		start $VPS_HOST_IP
+		end $VPS_HOST_IP
+		interface $USB_IF
+		opt subnet $VPS_NETMASK
+		opt router $VPS_IP
+		opt lease 86400
+	EOF
+	udhcpd -f -S /tmp/udhcpd_vps.conf >/dev/null 2>&1 &
+	printf '[VPS] DHCP server active. Host will receive: %s\n' "$VPS_HOST_IP"
+else
+	printf '[VPS] Note: USB gadget network interface not yet active.\n'
+fi
+
+# Launch shell / SSH server
+if command -v dropbear >/dev/null 2>&1; then
+	mkdir -p /etc/dropbear
+	if [ ! -f /etc/dropbear/dropbear_rsa_host_key ]; then
+		dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key >/dev/null 2>&1 || true
+	fi
+	dropbear -p "$SSH_PORT" -B >/dev/null 2>&1 || true
+	printf '[VPS] Dropbear SSH server listening on port %s.\n' "$SSH_PORT"
+else
+	# Fallback: BusyBox telnetd on standard port
+	telnetd -p "$SSH_PORT" -l /bin/sh >/dev/null 2>&1 || true
+	printf '[VPS] BusyBox server listening on port %s.\n' "$SSH_PORT"
+fi
+
+printf '\n[VPS] Ready. Connect host USB and access:\n'
+printf '      IP:   %s\n' "$VPS_IP"
+printf '      Port: %s\n' "$SSH_PORT"
+printf '\nStarting interactive root console. Type exit or reboot to finish.\n'
+
+while :; do
+	sh -i </dev/console >/dev/console 2>&1
+done
