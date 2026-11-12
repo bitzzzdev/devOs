@@ -138,19 +138,22 @@ If you generated a new key, the signed image hash will differ. The build metadat
 
 On macOS, use `shasum -a 256 <file>` in place of `sha256sum`. In PowerShell, use `Get-FileHash <file> -Algorithm SHA256`.
 
-## Optional GitHub Actions build
+## Optional hosted CI build
 
 The repository includes a manually triggered **Build DEVos boot candidate**
-workflow. It accepts an HTTPS URL and SHA-256 digest for the exact A.119 BOOT
-image, downloads and verifies that image on an ephemeral runner, builds the
-multi-boot candidate and the single-file flashable installer ISO and ZIP,
-then uploads them as a 14-day artifact. The workflow does not publish the
-proprietary BOOT image or the private signing key.
+workflow on GitHub Actions and an equivalent manual `build-boot-candidate` job
+on GitLab CI. Both accept an HTTPS URL and SHA-256 digest for the exact A.119
+BOOT image, download and verify that image on an ephemeral runner, build the
+multi-boot candidate and the single-file flashable installer ISO and ZIP, then
+upload them as a 14-day artifact. Neither pipeline publishes the proprietary
+BOOT image or the private signing key.
 
-Start it from the repository's **Actions** tab. Enter the URL and digest only
-after independently checking that they refer to the RMX3231 A.119 BOOT image.
-The resulting artifact is a verified build candidate, not a release and not
-proof that the phone will accept or boot it.
+Start the GitHub workflow from the repository's **Actions** tab. Start the
+GitLab job from **CI/CD > Pipelines** and set `STOCK_BOOT_URL` and
+`STOCK_BOOT_SHA256` as pipeline variables. Enter the URL and digest only after
+independently checking that they refer to the RMX3231 A.119 BOOT image. The
+resulting artifact is a verified build candidate, not a release and not proof
+that the phone will accept or boot it.
 
 ## 4. Read-only phone checks, when the phone is accessible
 
