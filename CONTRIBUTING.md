@@ -14,7 +14,7 @@ DEVos is an experimental native Linux port for the Realme C11 2021 (RMX3231). Co
 - Keep scripts reproducible and make destructive actions opt-in and explicit.
 - Record source URLs, versions, checksums, tool versions, and limitations for firmware research.
 - Do not claim hardware support based only on another Realme or Unisoc device.
-- Describe what was changed and what remains unverified in the pull request.
+- Describe what was changed and what remains unverified in the pull request or merge request.
 - Do not submit stock firmware or device-specific blobs unless their redistribution terms have been established.
 
-DEVos-authored source is available under the PolyForm Noncommercial License 1.0.0 in `LICENSE`. Contributors retain copyright in their work. Before a contribution is accepted, state in its pull request that you license the contribution under PolyForm Noncommercial 1.0.0 and agree to retain the required `bitzzdev` notice. Third-party components retain their original terms; contributions cannot change those terms.
+DEVos-authored source is available under the PolyForm Noncommercial License 1.0.0 in `LICENSE`. Contributors retain copyright in their work. Before a contribution is accepted, state in its pull request or merge request that you license the contribution under PolyForm Noncommercial 1.0.0 and agree to retain the required `bitzzdev` notice. Third-party components retain their original terms; contributions cannot change those terms.

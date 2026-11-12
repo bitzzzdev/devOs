@@ -25,9 +25,18 @@ The A.119 package was downloaded from a Realme-owned host and passed ZIP CRC val
 
 Clone the repository and its kernel submodule:
 
+GitHub:
+
 ```sh
 git clone --recurse-submodules https://github.com/bitzzdev/DEVos.git
 cd DEVos
+```
+
+GitLab:
+
+```sh
+git clone --recurse-submodules https://gitlab.com/bitzzdev/devOs.git
+cd devOs
 ```
 
 If you already cloned it without submodules, initialize them:

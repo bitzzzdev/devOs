@@ -49,7 +49,7 @@ See [docs/multiboot-modes.md](docs/multiboot-modes.md) for full network paramete
 
 The current inventory identifies the boot image, kernel, ramdisk, DTBO, AVB metadata, modem payload entries, and a 5 GiB dynamic-partition super image. DTBO entry 0 matches the RMX3231 vendor overlay and its `androidboot.dtbo_idx=0` selection. The local candidate retains the stock kernel and DTB wrapper, replaces the ramdisk, adds a locally signed AVB hash descriptor, and pads to the A.119 package's 64 MiB BOOT entry size. Its key differs from the Realme key pinned in root vbmeta. The package size does not confirm the phone's current live partition size. Nothing in this repository is an installation guide.
 
-GitHub Actions builds and inspects the minimal initramfs on pushes and pull requests. Local build instructions are in [rootfs/README.md](rootfs/README.md), and the current boot constraints are in [the boot strategy](docs/boot-strategy.md).
+GitHub Actions and GitLab CI build and inspect the minimal initramfs on pushes, pull requests, and merge requests. Local build instructions are in [rootfs/README.md](rootfs/README.md), and the current boot constraints are in [the boot strategy](docs/boot-strategy.md).
 
 The **Build DEVos boot candidate** workflow can assemble the full image on demand.
 It requires a URL and SHA-256 digest for an exact, device-matched A.119 BOOT
